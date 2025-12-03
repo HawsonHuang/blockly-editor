@@ -1,0 +1,809 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>E-Done Editor</title>
+	<link href="https://unpkg.com/blockly/blockly.min.css" rel="stylesheet">
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+		}
+		
+		:root {
+			--primary-color: #2c3e50;
+			--secondary-color: #3498db;
+			--accent-color: #1abc9c;
+			--light-bg: #f5f7fa;
+			--border-color: #ddd;
+			--text-color: #333;
+			--text-light: #777;
+			--shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+		}
+		
+		body {
+			background-color: #f0f2f5;
+			color: var(--text-color);
+			display: flex;
+			flex-direction: column;
+			height: 100vh;
+			overflow: hidden;
+		}
+		
+		/* 顶部导航栏 */
+		.top-navbar {
+			background: linear-gradient(135deg, var(--primary-color), #1a2530);
+			color: white;
+			padding: 0 20px;
+			height: 70px;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+			z-index: 100;
+		}
+		
+		.title {
+			display: flex;
+			flex-direction: column;
+		}
+		
+		.title h1 {
+			font-size: 22px;
+			font-weight: 600;
+			letter-spacing: 0.5px;
+			margin-bottom: 3px;
+		}
+		
+		.title span {
+			font-size: 14px;
+			color: rgba(255, 255, 255, 0.8);
+			font-weight: 300;
+		}
+		
+		.settings {
+			display: flex;
+			align-items: center;
+			gap: 25px;
+		}
+		
+		.device-type {
+			padding: 10px 15px;
+			border-radius: 6px;
+			border: 1px solid rgba(255, 255, 255, 0.2);
+			background-color: rgba(255, 255, 255, 0.1);
+			color: white;
+			font-size: 14px;
+			min-width: 180px;
+			cursor: pointer;
+			transition: all 0.2s;
+		}
+		
+		.device-type:hover {
+			background-color: rgba(255, 255, 255, 0.15);
+		}
+		
+		.device-type option {
+			background-color: var(--primary-color);
+			color: white;
+		}
+		
+		nav ul {
+			display: flex;
+			list-style: none;
+			gap: 20px;
+		}
+		
+		nav a {
+			color: white;
+			text-decoration: none;
+			font-size: 15px;
+			padding: 8px 12px;
+			border-radius: 4px;
+			transition: background-color 0.2s;
+		}
+		
+		nav a:hover {
+			background-color: rgba(255, 255, 255, 0.1);
+		}
+		
+		/* 主容器 */
+		.container {
+			display: flex;
+			flex: 1;
+			overflow: hidden;
+		}
+		
+		/* 左侧工具栏 */
+		.left-bar {
+			width: 250px;
+			background-color: white;
+			border-right: 1px solid var(--border-color);
+			display: flex;
+			flex-direction: column;
+			padding: 20px 0;
+			overflow-y: auto;
+		}
+		
+		.left-bar h2 {
+			font-size: 20px;
+			padding: 0 20px 15px;
+			color: var(--primary-color);
+			border-bottom: 1px solid var(--border-color);
+			margin-bottom: 15px;
+		}
+		
+		/* 主工作区 */
+		.workspace {
+			flex: 1;
+			background-color: #f8f9fa;
+			overflow: hidden;
+			position: relative;
+		}
+		
+		/* Blockly 容器 */
+		#blockly-container {
+			width: 100%;
+			height: 100%;
+			position: absolute;
+			top: 0;
+			left: 0;
+		}
+		
+		/* 右侧栏 */
+		.right-bar {
+			width: 320px;
+			background-color: white;
+			border-left: 1px solid var(--border-color);
+			display: flex;
+			flex-direction: column;
+			padding: 20px 0;
+		}
+		
+		.serial-printer {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			padding: 0 20px;
+			border-bottom: 1px solid var(--border-color);
+			padding-bottom: 20px;
+		}
+		
+		.serial-setting {
+			margin-bottom: 20px;
+		}
+		
+		.serial-setting h2 {
+			font-size: 16px;
+			color: var(--primary-color);
+			margin-bottom: 15px;
+		}
+		
+		.serial-setting span {
+			font-size: 14px;
+			color: var(--text-light);
+			margin-right: 10px;
+		}
+		
+		.serial {
+			padding: 8px 12px;
+			border-radius: 4px;
+			border: 1px solid var(--border-color);
+			background-color: white;
+			font-size: 14px;
+			width: 120px;
+			cursor: pointer;
+		}
+		
+		.serial-print {
+			flex: 1;
+			background-color: #1e1e1e;
+			border-radius: 6px;
+			padding: 15px;
+			font-family: 'Courier New', monospace;
+			font-size: 13px;
+			color: #e0e0e0;
+			overflow-y: auto;
+			min-height: 300px;
+			line-height: 1.5;
+		}
+		
+		.print-line {
+			margin-bottom: 5px;
+			font-family: 'Courier New', monospace;
+			font-size: 13px;
+			color: #d4d4d4;
+		}
+		
+		.print-line::before {
+			content: "> ";
+			color: var(--accent-color);
+		}
+		
+		.loader {
+			padding: 20px;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 15px;
+		}
+		
+		.btn {
+			padding: 14px 30px;
+			background: linear-gradient(to right, var(--secondary-color), var(--accent-color));
+			color: white;
+			border: none;
+			border-radius: 6px;
+			font-size: 16px;
+			font-weight: 600;
+			cursor: pointer;
+			width: 100%;
+			transition: all 0.3s;
+			box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+		}
+		
+		.btn:hover {
+			transform: translateY(-3px);
+			box-shadow: 0 6px 15px rgba(52, 152, 219, 0.4);
+		}
+		
+		.btn:active {
+			transform: translateY(-1px);
+		}
+		
+		/* 代码输出区域 */
+		.code-output {
+			padding: 15px;
+			background-color: #f8f9fa;
+			border-top: 1px solid var(--border-color);
+		}
+		
+		.code-output h3 {
+			font-size: 14px;
+			color: var(--primary-color);
+			margin-bottom: 10px;
+		}
+		
+		#generated-code {
+			background-color: white;
+			border: 1px solid var(--border-color);
+			border-radius: 4px;
+			padding: 15px;
+			font-family: 'Courier New', monospace;
+			font-size: 12px;
+			white-space: pre-wrap;
+			word-break: break-all;
+			max-height: 200px;
+			overflow-y: auto;
+		}
+		
+		/* 响应式设计 */
+		@media (max-width: 1200px) {
+			.left-bar {
+				width: 220px;
+			}
+			
+			.right-bar {
+				width: 280px;
+			}
+		}
+		
+		@media (max-width: 900px) {
+			.container {
+				flex-direction: column;
+			}
+			
+			.left-bar, .right-bar {
+				width: 100%;
+				height: auto;
+			}
+			
+			.left-bar {
+				border-right: none;
+				border-bottom: 1px solid var(--border-color);
+				padding: 15px 0;
+			}
+			
+			.right-bar {
+				border-left: none;
+				border-top: 1px solid var(--border-color);
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<!--Top Navigation-->
+	<header class="top-navbar">
+		<div class="title">
+			<h1>图形化编程</h1>
+			<span>E-Done Editor</span>
+		</div>
+		<div class="settings">
+			<select id="device-type" class="device-type">
+				<option value="">选择主板</option>
+				<option value="arduino-uno">Arduino Uno</option>
+				<option value="arduino-nano">Arduino Nano</option>
+				<option value="arduino-leonardo">Arduino Leonardo</option>
+			</select>
+			<nav>
+				<ul>
+					<li><a href="#">教程</a></li>
+					<li><a href="#">帮助</a></li>
+				</ul>
+			</nav>
+		</div>
+	</header>
+	
+	<div class="container">
+		<aside class="left-bar">
+			<h2>工具箱</h2>
+			<!-- 工具箱将在这里动态生成 -->
+		</aside>
+		
+		<main class="workspace">
+			<!-- Blockly 容器 -->
+			<div id="blockly-container"></div>
+		</main>
+		
+		<aside class="right-bar">
+			<div class="serial-printer">
+				<div class="serial-setting">
+					<h2>串口打印</h2>
+					<span>波特率</span>
+					<select id="serial-rate" class="serial">
+						<option value="9600">9600</option>
+						<option value="19200">19200</option>
+						<option value="38400">38400</option>
+						<option value="57600">57600</option>
+						<option value="115200">115200</option>
+					</select>
+				</div>
+				
+				<div class="serial-print" id="serial-output">
+					<!-- 串口输出将动态添加 -->
+				</div>
+			</div>
+			
+			<div class="code-output">
+				<h3>生成的代码</h3>
+				<pre id="generated-code"></pre>
+			</div>
+			
+			<div class="loader">
+				<button class="btn" id="compile-btn">编译上传</button>
+			</div>
+		</aside>
+	</div>
+	
+	<!-- Blockly 库 -->
+	<script src="https://unpkg.com/blockly/blockly.min.js"></script>
+	<script src="https://unpkg.com/blockly/msg/zh-hans"></script>
+	<script src="https://unpkg.com/blockly/python.js"></script>
+	<script src="https://unpkg.com/blockly/javascript.js"></script>
+	
+	<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			// 1. 创建 Blockly 工作区
+			const workspace = Blockly.inject('blockly-container', {
+				grid: {
+					spacing: 20,
+					length: 3,
+					colour: '#ccc',
+					snap: true
+				},
+				zoom: {
+					controls: true,
+					wheel: true,
+					startScale: 1.0,
+					maxScale: 3,
+					minScale: 0.3,
+					scaleSpeed: 1.2
+				},
+				trashcan: true,
+				renderer: 'geras',
+				theme: Blockly.Themes.Classic
+			});
+			
+			// 2. 创建工具箱
+			const toolbox = {
+				"kind": "categoryToolbox",
+				"contents": [
+					{
+						"kind": "category",
+						"name": "逻辑",
+						"colour": "#5C81A6",
+						"contents": [
+							{
+								"kind": "block",
+								"type": "controls_if"
+							},
+							{
+								"kind": "block",
+								"type": "logic_compare"
+							},
+							{
+								"kind": "block",
+								"type": "logic_operation"
+							},
+							{
+								"kind": "block",
+								"type": "logic_boolean"
+							}
+						]
+					},
+					{
+						"kind": "category",
+						"name": "循环",
+						"colour": "#5CA65C",
+						"contents": [
+							{
+								"kind": "block",
+								"type": "controls_repeat_ext"
+							},
+							{
+								"kind": "block",
+								"type": "controls_whileUntil"
+							},
+							{
+								"kind": "block",
+								"type": "controls_for"
+							}
+						]
+					},
+					{
+						"kind": "category",
+						"name": "数学",
+						"colour": "#5C68A6",
+						"contents": [
+							{
+								"kind": "block",
+								"type": "math_number"
+							},
+							{
+								"kind": "block",
+								"type": "math_arithmetic"
+							},
+							{
+								"kind": "block",
+								"type": "math_single"
+							},
+							{
+								"kind": "block",
+								"type": "math_random_int"
+							}
+						]
+					},
+					{
+						"kind": "category",
+						"name": "文本",
+						"colour": "#A65C81",
+						"contents": [
+							{
+								"kind": "block",
+								"type": "text"
+							},
+							{
+								"kind": "block",
+								"type": "text_join"
+							},
+							{
+								"kind": "block",
+								"type": "text_print"
+							}
+						]
+					},
+					{
+						"kind": "category",
+						"name": "Arduino",
+						"colour": "#047c91",
+						"contents": [
+							{
+								"kind": "block",
+								"type": "arduino_setup"
+							},
+							{
+								"kind": "block",
+								"type": "arduino_loop"
+							},
+							{
+								"kind": "block",
+								"type": "arduino_delay"
+							},
+							{
+								"kind": "block",
+								"type": "arduino_pin_mode"
+							},
+							{
+								"kind": "block",
+								"type": "arduino_digital_write"
+							},
+							{
+								"kind": "block",
+								"type": "arduino_digital_read"
+							}
+						]
+					}
+				]
+			};
+			
+			// 3. 设置工具箱
+			workspace.updateToolbox(toolbox);
+			
+			// 4. 定义自定义积木块
+			Blockly.Blocks['arduino_setup'] = {
+				init: function() {
+					this.appendDummyInput()
+						.appendField("Arduino 初始化");
+					this.appendStatementInput("SETUP_CONTENT")
+						.setCheck(null)
+						.appendField("执行");
+					this.setColour(230);
+					this.setTooltip("Arduino 的 setup() 函数，在程序开始时执行一次");
+					this.setHelpUrl("");
+				}
+			};
+			
+			Blockly.Blocks['arduino_loop'] = {
+				init: function() {
+					this.appendDummyInput()
+						.appendField("Arduino 主循环");
+					this.appendStatementInput("LOOP_CONTENT")
+						.setCheck(null)
+						.appendField("重复执行");
+					this.setColour(230);
+					this.setTooltip("Arduino 的 loop() 函数，重复执行");
+					this.setHelpUrl("");
+				}
+			};
+			
+			Blockly.Blocks['arduino_delay'] = {
+				init: function() {
+					this.appendDummyInput()
+						.appendField("延迟")
+						.appendField(new Blockly.FieldNumber(1000, 0), "DELAY_MS")
+						.appendField("毫秒");
+					this.setPreviousStatement(true, null);
+					this.setNextStatement(true, null);
+					this.setColour(230);
+					this.setTooltip("延迟指定毫秒数");
+					this.setHelpUrl("");
+				}
+			};
+			
+			Blockly.Blocks['arduino_pin_mode'] = {
+				init: function() {
+					this.appendDummyInput()
+						.appendField("设置引脚")
+						.appendField(new Blockly.FieldNumber(13, 0, 53), "PIN")
+						.appendField("模式为")
+						.appendField(new Blockly.FieldDropdown([["输出", "OUTPUT"], ["输入", "INPUT"], ["输入上拉", "INPUT_PULLUP"]]), "MODE");
+					this.setPreviousStatement(true, null);
+					this.setNextStatement(true, null);
+					this.setColour(230);
+					this.setTooltip("设置 Arduino 引脚模式");
+					this.setHelpUrl("");
+				}
+			};
+			
+			Blockly.Blocks['arduino_digital_write'] = {
+				init: function() {
+					this.appendDummyInput()
+						.appendField("数字写入 引脚")
+						.appendField(new Blockly.FieldNumber(13, 0, 53), "PIN")
+						.appendField("值为")
+						.appendField(new Blockly.FieldDropdown([["高电平", "HIGH"], ["低电平", "LOW"]]), "VALUE");
+					this.setPreviousStatement(true, null);
+					this.setNextStatement(true, null);
+					this.setColour(230);
+					this.setTooltip("向 Arduino 引脚写入数字值");
+					this.setHelpUrl("");
+				}
+			};
+			
+			Blockly.Blocks['arduino_digital_read'] = {
+				init: function() {
+					this.appendDummyInput()
+						.appendField("数字读取 引脚")
+						.appendField(new Blockly.FieldNumber(13, 0, 53), "PIN");
+					this.setOutput(true, 'Number');
+					this.setColour(230);
+					this.setTooltip("从 Arduino 引脚读取数字值");
+					this.setHelpUrl("");
+				}
+			};
+			
+			// 5. 为自定义积木块添加代码生成器
+			Blockly.JavaScript['arduino_setup'] = function(block) {
+				const content = Blockly.JavaScript.statementToCode(block, 'SETUP_CONTENT');
+				return 'function setup() {\n' + content + '}\n\n';
+			};
+			
+			Blockly.JavaScript['arduino_loop'] = function(block) {
+				const content = Blockly.JavaScript.statementToCode(block, 'LOOP_CONTENT');
+				return 'function loop() {\n' + content + '}\n\n';
+			};
+			
+			Blockly.JavaScript['arduino_delay'] = function(block) {
+				const delayMs = block.getFieldValue('DELAY_MS');
+				return 'delay(' + delayMs + ');\n';
+			};
+			
+			Blockly.JavaScript['arduino_pin_mode'] = function(block) {
+				const pin = block.getFieldValue('PIN');
+				const mode = block.getFieldValue('MODE');
+				return 'pinMode(' + pin + ', ' + mode + ');\n';
+			};
+			
+			Blockly.JavaScript['arduino_digital_write'] = function(block) {
+				const pin = block.getFieldValue('PIN');
+				const value = block.getFieldValue('VALUE');
+				return 'digitalWrite(' + pin + ', ' + value + ');\n';
+			};
+			
+			Blockly.JavaScript['arduino_digital_read'] = function(block) {
+				const pin = block.getFieldValue('PIN');
+				return ['digitalRead(' + pin + ')', Blockly.JavaScript.ORDER_ATOMIC];
+			};
+			
+			// 6. 监听工作区变化
+			workspace.addChangeListener(function(event) {
+				if (!event.isUiEvent) {
+					updateGeneratedCode();
+				}
+			});
+			
+			// 7. 生成代码的函数
+			function updateGeneratedCode() {
+				try {
+					const code = Blockly.JavaScript.workspaceToCode(workspace);
+					document.getElementById('generated-code').textContent = code;
+				} catch (error) {
+					document.getElementById('generated-code').textContent = '错误: ' + error.message;
+				}
+			}
+			
+			// 8. 串口输出功能
+			const serialOutput = document.getElementById('serial-output');
+			
+			function addSerialMessage(message) {
+				const messageElement = document.createElement('div');
+				messageElement.className = 'print-line';
+				messageElement.textContent = message;
+				serialOutput.appendChild(messageElement);
+				serialOutput.scrollTop = serialOutput.scrollHeight;
+			}
+			
+			// 9. 初始化串口输出
+			const initialMessages = [
+				"系统启动成功",
+				"Blockly 编辑器已初始化",
+				"Arduino 积木块已加载",
+				"等待用户操作..."
+			];
+			
+			initialMessages.forEach((msg, index) => {
+				setTimeout(() => addSerialMessage(msg), index * 500);
+			});
+			
+			// 10. 编译上传按钮事件
+			document.getElementById('compile-btn').addEventListener('click', function() {
+				const code = document.getElementById('generated-code').textContent;
+				const btn = this;
+				const originalText = btn.textContent;
+				
+				// 禁用按钮并显示加载状态
+				btn.textContent = '编译中...';
+				btn.disabled = true;
+				
+				// 模拟编译过程
+				setTimeout(() => {
+					addSerialMessage("开始编译程序...");
+					addSerialMessage("检查代码语法...");
+					addSerialMessage("生成 Arduino 代码...");
+					
+					setTimeout(() => {
+						if (code && !code.startsWith('错误')) {
+							addSerialMessage("编译成功！");
+							addSerialMessage("正在上传到设备...");
+							
+							setTimeout(() => {
+								addSerialMessage("上传完成！");
+								addSerialMessage("程序开始运行...");
+								btn.textContent = '上传成功';
+								btn.style.background = 'linear-gradient(to right, #2ecc71, #27ae60)';
+								
+								// 3秒后恢复按钮
+								setTimeout(() => {
+									btn.textContent = originalText;
+									btn.disabled = false;
+									btn.style.background = 'linear-gradient(to right, var(--secondary-color), var(--accent-color))';
+								}, 3000);
+							}, 1500);
+						} else {
+							addSerialMessage("编译失败：代码有错误");
+							btn.textContent = '编译失败';
+							btn.style.background = 'linear-gradient(to right, #e74c3c, #c0392b)';
+							
+							setTimeout(() => {
+								btn.textContent = originalText;
+								btn.disabled = false;
+								btn.style.background = 'linear-gradient(to right, var(--secondary-color), var(--accent-color))';
+							}, 3000);
+						}
+					}, 1000);
+				}, 500);
+			});
+			
+			// 11. 波特率选择事件
+			document.getElementById('serial-rate').addEventListener('change', function() {
+				addSerialMessage(`波特率设置为: ${this.value}`);
+			});
+			
+			// 12. 设备类型选择事件
+			document.getElementById('device-type').addEventListener('change', function() {
+				const selectedDevice = this.value;
+				if (selectedDevice) {
+					addSerialMessage(`已选择主板: ${this.options[this.selectedIndex].text}`);
+				}
+			});
+			
+			// 13. 初始化设备选择
+			document.getElementById('device-type').value = 'arduino-uno';
+			
+			// 14. 加载示例程序
+			function loadExampleProgram() {
+				const exampleXml = `
+<xml xmlns="https://developers.google.com/blockly/xml">
+	<block type="arduino_setup" x="50" y="50">
+		<statement name="SETUP_CONTENT">
+			<block type="arduino_pin_mode">
+				<field name="PIN">13</field>
+				<field name="MODE">OUTPUT</field>
+			</block>
+		</statement>
+	</block>
+	<block type="arduino_loop" x="50" y="200">
+		<statement name="LOOP_CONTENT">
+			<block type="arduino_digital_write">
+				<field name="PIN">13</field>
+				<field name="VALUE">HIGH</field>
+				<next>
+					<block type="arduino_delay">
+						<field name="DELAY_MS">1000</field>
+						<next>
+							<block type="arduino_digital_write">
+								<field name="PIN">13</field>
+								<field name="VALUE">LOW</field>
+								<next>
+									<block type="arduino_delay">
+										<field name="DELAY_MS">1000</field>
+									</block>
+								</next>
+							</block>
+						</next>
+					</block>
+				</next>
+			</block>
+		</statement>
+	</block>
+</xml>`;
+				
+				try {
+					const xml = Blockly.Xml.textToDom(exampleXml);
+					Blockly.Xml.domToWorkspace(xml, workspace);
+					updateGeneratedCode();
+					addSerialMessage("示例程序已加载: LED闪烁");
+				} catch (error) {
+					console.error('加载示例程序失败:', error);
+				}
+			}
+			
+			// 页面加载完成后加载示例程序
+			setTimeout(loadExampleProgram, 1000);
+		});
+	</script>
+</body>
+</html>
